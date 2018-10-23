@@ -95,3 +95,4 @@ bool Bullet::wallCollision() {
 	}
 	return false;
 }
+

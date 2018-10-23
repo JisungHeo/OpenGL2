@@ -6,7 +6,7 @@ public:
 	~Bullet();
 	void draw();
 	void move();
-	bool  wallCollision();
+	bool wallCollision();
 	void rotation();
 	int x;
 	int y;

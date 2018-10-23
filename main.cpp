@@ -1,5 +1,5 @@
 /*
-   Computer graphics assignment 1
+   Computer graphics assignment 2
 
    20150309 컴퓨터공학과 허지성
    20150863 컴퓨터공학과 김지수  
@@ -7,12 +7,13 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <algorithm>
+#include <list>
 #include "player.h"
 #include "bullet.h"
 #include "enemy.h"
 #include "item.h"
-#include <algorithm>
-#include <list>
+
 
 using namespace std;
 Player player(10, 10);
@@ -27,12 +28,17 @@ extern int map_bullet[20][20];
 extern int map_item[20][20];
 
 
-int enemy_move = 0;
+int enemy_timer = 0;
 int bullet_speed = 4;
-bool game_over = false;
 int width = 500;
 int height = 400;
 bool once = true;
+
+
+//Return if game is over
+bool isGameOver() {
+	return player.enemyCollision() || listEnemy.empty();
+}
 
 // function called when the window size is changed
 void reshape(int w, int h)
@@ -106,7 +112,6 @@ void drawStatusBar()
 	glColor3f(0.3, 0.3, 0.3);
 	glRectf(0, 0, 500, 100);
 
-
 	glColor3f(0, 0, 0);
 	printtext(210, 250, "item list");
 	if (player.itemlist[0]) // when player got an item1
@@ -118,21 +123,18 @@ void drawStatusBar()
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
-
 }
 
 
 void display()
 {
-
-	if (!game_over) { // if game is not over.
+	if (!isGameOver()) { // if game is not over.
 		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glViewport(0, height / 5, width, height * 4 / 5); // upper part of the viewport
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		gluOrtho2D(-250, 250, -200, 200);
-		
 		
 		glMatrixMode(GL_MODELVIEW);
 
@@ -154,7 +156,6 @@ void display()
 		player.draw(); // draw player
 		drawStatusBar();
 		glutSwapBuffers();
-		
 	}
 	// if the game is over(all enemies are defeated or player touched an enemy)
 	else {
@@ -193,38 +194,31 @@ void keyboard(unsigned char key, int x, int y)
 	int bul_x = player.x;
 	int bul_y = player.y;
 	int dir = player.direction;
-	switch (key)
-	{
-	case ' ':// space bar has been pushed.
-		// item1: 3 bullets are fired simultaneously.
-		if (player.itemlist[0]) {
-			
-			switch (dir) {
-			case UP:
-			case DOWN:
-				listBullet.push_back(Bullet(dir, bul_x - 1, bul_y));
-				listBullet.push_back(Bullet(dir, bul_x + 1, bul_y));
-				break;
-			case LEFT:
-			case RIGHT:
-				listBullet.push_back(Bullet(dir, bul_x, bul_y - 1));
-				listBullet.push_back(Bullet(dir, bul_x, bul_y + 1));
-				break;
-			}
+	// item1: 3 bullets are fired simultaneously.
+	if (player.itemlist[0]) {
+		switch (dir) {
+		case UP:
+		case DOWN:
+			listBullet.push_back(Bullet(dir, bul_x - 1, bul_y));
+			listBullet.push_back(Bullet(dir, bul_x + 1, bul_y));
+			break;
+		case LEFT:
+		case RIGHT:
+			listBullet.push_back(Bullet(dir, bul_x, bul_y - 1));
+			listBullet.push_back(Bullet(dir, bul_x, bul_y + 1));
+			break;
 		}
-		// item2: speed up bullets.
-		if (player.itemlist[1])
-			bullet_speed = 2;
-		listBullet.push_back(Bullet(dir, bul_x, bul_y));
 	}
+	// item2: speed up bullets.
+	if (player.itemlist[1])
+		bullet_speed = 2;
+	listBullet.push_back(Bullet(dir, bul_x, bul_y));
 	glutPostRedisplay();
 }
 
-// timer function for updating the status of objects.
-void timer(int value)
-{
-	for (list<Bullet>::iterator it = listBullet.begin(); it != listBullet.end();)//bullet management
-	{
+//bullet management
+void BulletUpdate() {
+	for (list<Bullet>::iterator it = listBullet.begin(); it != listBullet.end();) {
 		(*it).move();
 		if ((*it).wallCollision())// when a bullet reached to wall, it disappears.
 		{
@@ -234,7 +228,32 @@ void timer(int value)
 		else
 			it++;
 	}
+}
 
+//enemy management
+void EnemyUpdate() {
+	for (list<Enemy>::iterator it = listEnemy.begin(); it != listEnemy.end();)
+	{
+		if ((*it).bulletCollision()) // when an enemy got fired, it disappears.
+		{
+			map_enemy[(*it).x][(*it).y] = 0;
+			(*it).~Enemy();
+			listEnemy.erase(it++);
+		}
+		else
+			it++;
+	}
+
+	//Enemy moves periodically. (enemy move is a kind of timer)
+	if (enemy_timer >= 100 * bullet_speed) {
+		for (list<Enemy>::iterator it = listEnemy.begin(); it != listEnemy.end(); it++)
+			(*it).move();
+		enemy_timer = 0;
+	}
+	enemy_timer =+ bullet_speed;// enemy move timer update
+}
+
+void ItemUpdate() {
 	for (list<Item>::iterator it = listItem.begin(); it != listItem.end();)//item management
 	{
 		if ((*it).playerCollision()) // player got an item
@@ -247,28 +266,15 @@ void timer(int value)
 		else
 			it++;
 	}
-	for (list<Enemy>::iterator it = listEnemy.begin(); it != listEnemy.end();)//enemy management
-	{
-		if ((*it).bulletCollision()) // when an enemy got fired, it disappears.
-		{
-			map_enemy[(*it).x][(*it).y] = 0;
-			(*it).~Enemy();
-			listEnemy.erase(it++);
-		}
-		else
-			it++;
-	}
-	//Enemy moves periodically. (enemy move is a kind of timer)
-	if (enemy_move >= 100 * bullet_speed) {
-		for (list<Enemy>::iterator it = listEnemy.begin(); it != listEnemy.end(); it++)//enemy management
-			(*it).move();
-		enemy_move = 0;
-	}
-	enemy_move = enemy_move + bullet_speed;// enemy move timer update
+}
 
-	//Game over check
-	if (player.enemyCollision() || listEnemy.empty())
-		game_over = true;
+
+// timer function for updating the status of objects.
+void timer(int value)
+{
+	BulletUpdate();
+	ItemUpdate();
+	EnemyUpdate();
 	glutPostRedisplay();
 	glutTimerFunc(bullet_speed, timer, value + 1);
 }
@@ -279,11 +285,11 @@ void init()
 	for (int i = 0; i < 20; i++)
 		for (int j = 0; j < 20; j++)
 		{
-			if (map_item[i][j] != 0) // creates item objects
+			if (map_item[i][j]) // creates item objects
 				listItem.push_back(Item(map_item[i][j], i, j));
-			if (map_enemy[i][j] != 0) // creates enemy objects
+			if (map_enemy[i][j]) // creates enemy objects
 				listEnemy.push_back(Enemy(i, j));
-		}
+		} 
 }
 
 
