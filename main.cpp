@@ -14,7 +14,6 @@
 #include "item.h"
 #include "statusbar.h"
 
-
 using namespace std;
 Player player(10, 10);
 list<Bullet> listBullet;//list for managing bullet objects.
@@ -29,13 +28,13 @@ extern int map_item[20][20];
 
 //information about game
 bool game_over = false;
-int game_round, time;
-int enemy_timer = 0;
-int time_timer = 0;
-int bullet_speed = 4;
+bool once = true;
+int game_round = 1;
+int enemy_timer, time_timer;
+int bullet_speed, time;
 int width = 500;
 int height = 400;
-bool once = true;
+
 
 //Return if game is over
 void checkGameOver() {
@@ -136,16 +135,14 @@ void special(int key, int x, int y)
 		player.move(player.x + 1, player.y);
 		break;
 	}
+	player.lifeUpdate();
 	glutPostRedisplay();
 }
 
-// function called when bullet is fired. (space bar)
-void keyboard(unsigned char key, int x, int y)
-{
+void bulletLoad() {
 	int bul_x = player.x;
 	int bul_y = player.y;
 	int dir = player.direction;
-	// item1: 3 bullets are fired simultaneously.
 	if (player.itemlist[0]) {
 		switch (dir) {
 		case UP:
@@ -164,7 +161,6 @@ void keyboard(unsigned char key, int x, int y)
 	if (player.itemlist[1])
 		bullet_speed = 2;
 	listBullet.push_back(Bullet(dir, bul_x, bul_y));
-	glutPostRedisplay();
 }
 
 //bullet management
@@ -231,13 +227,32 @@ void timeUpdate() {
 // timer function for updating the status of objects.
 void timer(int value)
 {
-	bulletUpdate();
-	itemUpdate();
-	enemyUpdate();
-	timeUpdate();
+	if (!game_over) {
+		bulletUpdate();
+		itemUpdate();
+		enemyUpdate();
+		timeUpdate();
+	}
 	checkGameOver();
 	glutPostRedisplay();
 	glutTimerFunc(bullet_speed, timer, value + 1);
+}
+
+//Erase every entity in item, enemy , bullet list
+void map_clear() {
+	for (list<Item>::iterator it = listItem.begin(); it != listItem.end();) {
+		(*it).~Item();
+		listItem.erase(it++);
+	}
+	for (list<Enemy>::iterator it = listEnemy.begin(); it != listEnemy.end(); ) {
+		(*it).~Enemy();
+		listEnemy.erase(it++);
+	}
+
+	for (list<Bullet>::iterator it = listBullet.begin(); it != listBullet.end();){
+		(*it).~Bullet();
+		listBullet.erase(it++);
+	}
 }
 
 // function that reads map_item and creates the objects.
@@ -246,13 +261,38 @@ void init()
 	for (int i = 0; i < 20; i++)
 		for (int j = 0; j < 20; j++)
 		{
-			if (map_item[i][j]) // creates item objects
+			if (map_item[i][j]) // creates item objects 
 				listItem.push_back(Item(map_item[i][j], i, j));
 			if (map_enemy[i][j]) // creates enemy objects
 				listEnemy.push_back(Enemy(i, j));
 		} 
+	player.life = 3;
+	player.x = 10;
+	player.y = 10;
 	time = 30;
-	game_round = 1;
+	bullet_speed = 4;
+	game_over = false;
+	enemy_timer = 0;
+	time_timer = 0;
+	once = true;
+}
+// function for keyboard event
+void keyboard(unsigned char key, int x, int y)
+{
+	switch (key) {
+		//space
+	case ' ':
+		bulletLoad();
+		break;
+	case 'r':
+	case 'R':
+		if (game_over) {
+			//map_clear();
+			init();
+			game_round += 1;
+		}
+	}
+	glutPostRedisplay();
 }
 
 void main(int argc, char **argv)
