@@ -16,6 +16,7 @@ Player::Player(int x, int y) {
 	this->itemlist = (bool *)malloc(2 * sizeof(bool));//item inventory can hold 2 items
 	itemlist[0] = false;
 	itemlist[1] = false;
+	life = 3;
 }
 
 void Player::draw() {
@@ -92,4 +93,10 @@ bool Player::enemyCollision()
 bool Player::itemCollision(int x, int y)
 {
 	return map_item[x][y] == 1;
+}
+
+void Player::lifeUpdate() {
+	if (enemyCollision())
+			life--;
+	return;
 }

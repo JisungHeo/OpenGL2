@@ -7,9 +7,11 @@ public:
 	bool wallCollision(int, int);
 	bool enemyCollision();
 	bool itemCollision(int x, int y);
+	void lifeUpdate();
 
 	int x;
 	int y;
 	int direction;
+	int life;
 	bool* itemlist;
 };
