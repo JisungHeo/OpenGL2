@@ -15,7 +15,9 @@
 #include "statusbar.h"
 #include "shader.hpp"
 #include <glm/glm.hpp>
-
+#include "scene_node.hpp"
+#include <stack>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace std;
 Player player(10, 10);
 list<Bullet> listBullet;//list for managing bullet objects.
@@ -37,6 +39,26 @@ int bullet_speed, time;
 int width = 500;
 int height = 400;
 
+stack<glm::mat4> mvstack; //model-view stack
+glm::mat4 model_view;
+glm::mat4 projection;
+glm::mat4 MVP;
+GLuint ProgramID;
+GLuint MVPID;
+// reference: 06.hierar.pdf 27 page
+void traverse(SceneNode *root) {
+	if (root == NULL)
+		return;
+	mvstack.push(model_view);
+	model_view = model_view * root->m; 
+	root->f();
+	if (root->child != NULL)
+		traverse(root->child);
+	model_view = mvstack.top();
+	mvstack.pop();
+	if (root->sibling != NULL)
+		traverse(root->sibling);
+}
 
 //Return if game is over
 void checkGameOver() {
@@ -257,9 +279,6 @@ void map_clear() {
 	}
 }
 
-GLuint ProgramID;
-glm::mat4 MVP;
-GLuint MVPID;
 // function that reads map_item and creates the objects.
 void init()
 {
@@ -282,6 +301,7 @@ void init()
 	once = true;
 
 	ProgramID = LoadShaders("myVS.glsl", "myFS.glsl");
+	GLuint MVPID = glGetUniformLocation(ProgramID, "MVP");
 }
 // function for keyboard event
 void keyboard(unsigned char key, int x, int y)
@@ -304,16 +324,28 @@ void keyboard(unsigned char key, int x, int y)
 
 void display1() {
 	glClearColor(0, 0, 0, 0);
-	
+
+	projection = glm::ortho(0.0f, 50.0f, 0.0f, 50.0f);
+	model_view = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+	MVP = glm::mat4(1.0) * projection *model_view;
 	glUseProgram(ProgramID);
+
 	GLuint vertexarray;
 	glGenVertexArrays(1, &vertexarray);
 	glBindVertexArray(vertexarray);
 
 	static const GLfloat vertices[] = {
 		0.0,0.0,0.0,
-		0.0,50.0,0.0,
+		50.0,0.0,0.0,
 		50.0,50.0,0.0,
+		//50.0,50.0,0.0,
+	};
+
+	static const GLfloat colors[] = {
+		1.0,1.0,0.0,
+		1.0,0.0,0.0,
+		0,0,0,
+		//0,0,0,
 	};
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
@@ -321,15 +353,22 @@ void display1() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	GLuint colorbuffer;
+	glGenBuffers(1, &colorbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+
 	glClear(GL_COLOR_BUFFER_BIT);
+	glUseProgram(ProgramID);
+	
+	glUniformMatrix4fv(MVPID, 1, GL_FALSE, &MVP[0][0]);
 
 	glBindVertexArray(vertexarray);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glBindVertexArray(0);
-
-	GLuint MVPID = glGetUniformLocation(ProgramID, "gl_ModelViewProjectionMatrix");
-
-
 	glutSwapBuffers();
 }
 void main(int argc, char **argv)
@@ -338,11 +377,12 @@ void main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(500, 500);
 	glutCreateWindow("OpenGL Assignment 1");
+	init();
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(special);
 	glutDisplayFunc(display1);
 	//glutReshapeFunc(reshape);
 	glutTimerFunc(10, timer, 1);
-	init();
+	
 	glutMainLoop();
 }
