@@ -13,6 +13,8 @@
 #include "enemy.h"
 #include "item.h"
 #include "statusbar.h"
+#include "shader.hpp"
+#include <glm/glm.hpp>
 
 using namespace std;
 Player player(10, 10);
@@ -255,6 +257,9 @@ void map_clear() {
 	}
 }
 
+GLuint ProgramID;
+glm::mat4 MVP;
+GLuint MVPID;
 // function that reads map_item and creates the objects.
 void init()
 {
@@ -275,6 +280,8 @@ void init()
 	enemy_timer = 0;
 	time_timer = 0;
 	once = true;
+
+	ProgramID = LoadShaders("myVS.glsl", "myFS.glsl");
 }
 // function for keyboard event
 void keyboard(unsigned char key, int x, int y)
@@ -295,6 +302,36 @@ void keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+void display1() {
+	glClearColor(0, 0, 0, 0);
+	
+	glUseProgram(ProgramID);
+	GLuint vertexarray;
+	glGenVertexArrays(1, &vertexarray);
+	glBindVertexArray(vertexarray);
+
+	static const GLfloat vertices[] = {
+		0.0,0.0,0.0,
+		0.0,50.0,0.0,
+		50.0,50.0,0.0,
+	};
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBindVertexArray(vertexarray);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+
+	GLuint MVPID = glGetUniformLocation(ProgramID, "gl_ModelViewProjectionMatrix");
+
+
+	glutSwapBuffers();
+}
 void main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
@@ -303,8 +340,8 @@ void main(int argc, char **argv)
 	glutCreateWindow("OpenGL Assignment 1");
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(special);
-	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
+	glutDisplayFunc(display1);
+	//glutReshapeFunc(reshape);
 	glutTimerFunc(10, timer, 1);
 	init();
 	glutMainLoop();

@@ -3,10 +3,10 @@
 void main()
 {
     // Method #1)
-    gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
+    //gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
  
     // Method #2)
-    //gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
  
     // Method #3)
     //gl_Position = ftransform();
