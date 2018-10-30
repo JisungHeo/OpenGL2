@@ -12,12 +12,14 @@
 #include "bullet.h"
 #include "enemy.h"
 #include "item.h"
+//#include "vertex_data.cpp"
 #include "statusbar.h"
 #include "shader.hpp"
 #include <glm/glm.hpp>
 #include "scene_node.hpp"
 #include <stack>
 #include <glm/gtc/matrix_transform.hpp>
+#include <math.h>
 using namespace std;
 Player player(10, 10);
 list<Bullet> listBullet;//list for managing bullet objects.
@@ -353,8 +355,31 @@ void keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+void circleVertice(GLfloat vertices[1080]) {
+	for (int i = 0; i < 360 * 3; i = i + 3)
+	{
+		double rad = 10;
+		double angle = i * 3.141592 / 180;
+		double x = rad * cos(angle);
+		double y = rad * sin(angle);
+		vertices[i] = x + 25;
+		vertices[i + 1] = y + 40;
+		vertices[i + 2] = 0;
+	}
+}
+
+void rectVertice(GLfloat vertices[4*3]) {
+	GLfloat tmp[4 * 3] = {0.0,0.0,0.0,
+									10.0, 0.0,0.0,
+									10.0,10.0,0.0,
+									0.0,10.0,0.0};
+	for (int i = 0; i < 4*3; i++) {
+		vertices[i] = tmp[i];
+	}
+}
+
 void display1() {
-	glClearColor(0, 0, 0, 0);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
 
 	projection = glm::ortho(-250.0f, 250.0f, -200.0f, 200.0f);
 	model_view = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
@@ -365,19 +390,11 @@ void display1() {
 	glGenVertexArrays(1, &vertexarray);
 	glBindVertexArray(vertexarray);
 
-	static const GLfloat vertices[] = {
-		0.0,0.0,0.0,
-		50.0,0.0,0.0,
-		50.0,50.0,0.0,
-		//50.0,50.0,0.0,
-	};
-
-	static const GLfloat colors[] = {
-		1.0,1.0,0.0,
-		1.0,0.0,0.0,
-		0,0,0,
-		//0,0,0,
-	};
+	//사각형이면 꼭짓점 4, 원이면 360. 한 선분의 크기는 10으로 토탈 크기는 원이 더 큼. 
+	GLfloat vertices[4*3];
+	//circleVertice(vertices);
+	rectVertice(vertices);
+	GLfloat colors[4 * 3] = { 0.0 };
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -398,7 +415,7 @@ void display1() {
 	glUniformMatrix4fv(MVPID, 1, GL_FALSE, &MVP[0][0]);
 
 	glBindVertexArray(vertexarray);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glDrawArrays(GL_POLYGON, 0, 360);
 	glBindVertexArray(0);
 	glutSwapBuffers();
 }
@@ -407,10 +424,9 @@ void main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitWindowSize(500, 500);
+	glutInitWindowSize(500, 400);
 	glutCreateWindow("OpenGL Assignment 2");
 	init();
-	sceneGraphInit();
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(special);
 	glutDisplayFunc(display1);
