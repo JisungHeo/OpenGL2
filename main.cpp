@@ -325,7 +325,7 @@ void keyboard(unsigned char key, int x, int y)
 void display1() {
 	glClearColor(0, 0, 0, 0);
 
-	projection = glm::ortho(0.0f, 50.0f, 0.0f, 50.0f);
+	projection = glm::ortho(-250.0f, 250.0f, -200.0f, 200.0f);
 	model_view = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 	MVP = glm::mat4(1.0) * projection *model_view;
 	glUseProgram(ProgramID);
@@ -371,6 +371,7 @@ void display1() {
 	glBindVertexArray(0);
 	glutSwapBuffers();
 }
+
 void main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
@@ -378,6 +379,7 @@ void main(int argc, char **argv)
 	glutInitWindowSize(500, 500);
 	glutCreateWindow("OpenGL Assignment 1");
 	init();
+	sceneGraphInit();
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(special);
 	glutDisplayFunc(display1);
