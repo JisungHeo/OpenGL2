@@ -18,7 +18,7 @@ void printtext(int x, int y, string String)
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	gluOrtho2D(0, 500, 0, 100);
+	gluOrtho2D(0, 500, 0, 500);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
